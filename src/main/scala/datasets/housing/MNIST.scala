@@ -55,7 +55,7 @@ object MNIST {
         }
       }
       imagesArray += imageTmp.toDenseVector
-      numImagesRead += 1;
+      numImagesRead += 1
 
       if (numLabelsRead % 10 == 0) {
         System.out.print(".");
@@ -86,6 +86,11 @@ object MNIST {
     f.subplot(0) += image(imageVector.toDenseMatrix.reshape(28, 28))
 
     if(save) f.saveas("image.png")
+  }
+
+  def loadTrainingDataSet():(Seq[(DenseVector[Double],DenseVector[Double])], Seq[(DenseVector[Double],DenseVector[Double])]) = {
+    val trainingData = read()
+    (trainingData.take(50000), trainingData.drop(50000))
   }
 
 }
