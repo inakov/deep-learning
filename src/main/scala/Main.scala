@@ -11,12 +11,10 @@ object Main {
   def main(args: Array[String]) {
     val mnistDataset = MNIST.loadTrainingDataSet
     val trainingData = mnistDataset._1
-
     val validationData = mnistDataset._2
 
     val net = new Network(List(784, 30, 10))
-    net.SGD(trainingData, 200, 30, 0.5, lmbda = 0.5, testData = validationData)
-
+    net.SGD(trainingData, 300, 10, 0.01, lmbda = 0.1, testData = validationData)
   }
 
 }
