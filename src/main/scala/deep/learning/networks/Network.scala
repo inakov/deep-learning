@@ -75,28 +75,25 @@ class Network(networkDefinition: List[Int]) {
   }
 
   def updateMiniBatch(miniBatch: Seq[(DenseVector[Double],DenseVector[Double])], eta: Double, lmbda: Double, n: Int): Unit = {
-    var nabla_b: ArrayBuffer[DenseVector[Double]] = for(b <- biases) yield DenseVector.zeros[Double](b.length)
-    var nabla_w: ArrayBuffer[DenseMatrix[Double]] = for(w <- weights) yield DenseMatrix.zeros[Double](w.rows, w.cols)
-
-    var delta_nabla_b: ArrayBuffer[DenseVector[Double]] = ArrayBuffer[DenseVector[Double]]()
-    var delta_nabla_w: ArrayBuffer[DenseMatrix[Double]] = ArrayBuffer[DenseMatrix[Double]]()
+    var nabla_biases: ArrayBuffer[DenseVector[Double]] = biases.map(b => DenseVector.zeros[Double](b.length))
+    var nabla_weights: ArrayBuffer[DenseMatrix[Double]] = weights.map(w => DenseMatrix.zeros[Double](w.rows, w.cols))
 
     for((x, y) <- miniBatch){
       val backpropResult = backprop(x, y)
-      delta_nabla_b = backpropResult._1
-      delta_nabla_w = backpropResult._2
+      val delta_nabla_b: ArrayBuffer[DenseVector[Double]] = backpropResult._1
+      val delta_nabla_w: ArrayBuffer[DenseMatrix[Double]] = backpropResult._2
 
-      nabla_b = for((nb, dnb) <- nabla_b.zip(delta_nabla_b)) yield nb+dnb
-      nabla_w = for((nw, dnw) <- nabla_w.zip(delta_nabla_w)) yield nw+dnw
+      nabla_biases = (nabla_biases, delta_nabla_b).zipped.map(_ + _)
+      nabla_weights = (nabla_weights, delta_nabla_w).zipped.map(_ + _)
     }
-    weights = for((w, nw) <- weights.zip(nabla_w)) yield (1-eta*(lmbda/n))*w-(eta/miniBatch.length)*nw //w-(eta/miniBatch.length)*nw
-    biases = for((b, nb) <- biases.zip(nabla_b)) yield b-(eta/miniBatch.length)*nb
+    weights = (weights, nabla_weights).zipped.map((w, nw) => (1-eta*(lmbda/n))*w-(eta/miniBatch.length)*nw) //w-(eta/miniBatch.length)*nw
+    biases = (biases, nabla_biases).zipped.map((b, nb) => b-(eta/miniBatch.length)*nb)
   }
 
 
   def backprop(x: DenseVector[Double], y: DenseVector[Double]):(ArrayBuffer[DenseVector[Double]], ArrayBuffer[DenseMatrix[Double]]) ={
-    val nabla_b: ArrayBuffer[DenseVector[Double]] = for(b <- biases) yield DenseVector.zeros[Double](b.length)
-    val nabla_w: ArrayBuffer[DenseMatrix[Double]] = for(w <- weights) yield DenseMatrix.zeros[Double](w.rows, w.cols)
+    val nabla_b: ArrayBuffer[DenseVector[Double]] = biases.map(b => DenseVector.zeros[Double](b.length))
+    val nabla_w: ArrayBuffer[DenseMatrix[Double]] = weights.map(w => DenseMatrix.zeros[Double](w.rows, w.cols))
 
     var activation: DenseVector[Double] = x
     val activations: ArrayBuffer[DenseVector[Double]] = ArrayBuffer[DenseVector[Double]](x)
@@ -110,15 +107,15 @@ class Network(networkDefinition: List[Int]) {
       activations += activation
     }
     //backward pass
-    var delta = costDerivative(activations.reverse.head, y) //:* sigmoidPrime(zs.reverse.head)
+    var delta = costDerivative(activations.last, y) :* sigmoidPrime(zs.last)
     nabla_b(nabla_b.length-1) = delta
-    nabla_w(nabla_w.length-1) = delta * activations(activations.length-2).t
+    nabla_w(nabla_w.length-1) = activations(activations.length-2) * delta.t
     for(l <- 2 until numberOfLayers){
       val z = zs(zs.length-l)
       val spv = sigmoidPrime(z);
-      delta = (weights(weights.length-1) * delta) :* spv
+      delta = (weights(weights.length-l+1) * delta) :* spv
       nabla_b(nabla_b.length-l) = delta
-      nabla_w(nabla_w.length-l) = delta * activations(activations.length-l-1).t
+      nabla_w(nabla_w.length-l) = activations(activations.length-l-1) * delta.t
     }
 
     (nabla_b, nabla_w)
@@ -132,21 +129,6 @@ class Network(networkDefinition: List[Int]) {
       result+=1;
     }
     result
-  }
-
-  /*
-  *
-  *
-  * Return the cost associated with an output ``a`` and desired output
-  * ``y``.  Note that np.nan_to_num is used to ensure numerical
-  * stability.  In particular, if both ``a`` and ``y`` have a 1.0
-  * in the same slot, then the expression (1-y)*np.log(1-a)
-  * returns nan.  The np.nan_to_num ensures that that is converted
-  * to the correct value (0.0).
-  *
-  */
-  def crossEntropyCost(a: DenseVector[Double], y: DenseVector[Double]) = {
-
   }
 
   def costDerivative(outputActivations: DenseVector[Double], y: DenseVector[Double]): DenseVector[Double] = {

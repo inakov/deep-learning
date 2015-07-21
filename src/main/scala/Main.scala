@@ -9,16 +9,13 @@ import deep.learning.networks.Network
 object Main {
 
   def main(args: Array[String]) {
-
-//    println(DenseVector.rand[Double](4, rand = breeze.stats.distributions.Gaussian(0,1)))
-
     val mnistDataset = MNIST.loadTrainingDataSet
     val trainingData = mnistDataset._1
 
     val validationData = mnistDataset._2
 
-    val net = new Network(List(784, 100, 10))
-    net.SGD(trainingData, 200, 10, 0.5, lmbda = 0.5, testData = validationData)
+    val net = new Network(List(784, 30, 10))
+    net.SGD(trainingData, 200, 30, 0.5, lmbda = 0.5, testData = validationData)
 
   }
 
